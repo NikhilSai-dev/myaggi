@@ -1,1 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Modern Online Calculator</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: rgba(30, 41, 59, 0.7);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --btn-num: #1e293b;
+      --btn-num-hover: #334155;
+      --btn-op: #3b82f6;
+      --btn-op-hover: #2563eb;
+      --btn-action: #475569;
+      --btn-action-hover: #64748b;
+      --btn-equal: #10b981;
+      --btn-equal-hover: #059669;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
 
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 10%, #1e1b4b, var(--bg));
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1.5rem;
+      color: var(--text-main);
+    }
+
+    .calculator-container {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-width: 360px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 1.5rem;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+    }
+
+    .display {
+      padding: 1.5rem 1.25rem 1rem;
+      background: rgba(15, 23, 42, 0.6);
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      min-height: 110px;
+      justify-content: flex-end;
+      word-break: break-all;
+    }
+
+    .previous-operand {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      min-height: 1.2rem;
+    }
+
+    .current-operand {
+      font-size: 2.25rem;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+    }
+
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.6rem;
+      padding: 1.25rem;
+    }
+
+    button {
+      outline: none;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 1.25rem;
+      font-weight: 500;
+      border-radius: 0.85rem;
+      cursor: pointer;
+      color: var(--text-main);
+      height: 60px;
+      transition: all 0.15s ease-in-out;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    button:active {
+      transform: scale(0.95);
+    }
+
+    .btn-num {
+      background: var(--btn-num);
+    }
+    .btn-num:hover {
+      background: var(--btn-num-hover);
+    }
+
+    .btn-op {
+      background: var(--btn-op);
+      color: #fff;
+    }
+    .btn-op:hover {
+      background: var(--btn-op-hover);
+    }
+
+    .btn-action {
+      background: var(--btn-action);
+    }
+    .btn-action:hover {
+      background: var(--btn-action-hover);
+    }
+
+    .btn-equal {
+      background: var(--btn-equal);
+      grid-column: span 2;
+    }
+    .btn-equal:hover {
+      background: var(--btn-equal-hover);
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      padding: 0.5rem 0 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="calculator-container">
+    <div class="display">
+      <div class="previous-operand" id="prevDisplay"></div>
+      <div class="current-operand" id="currDisplay">0</div>
+    </div>
+
+    <div class="keypad">
+      <button class="btn-action" onclick="clearAll()">AC</button>
+      <button class="btn-action" onclick="deleteChar()">DEL</button>
+      <button class="btn-action" onclick="appendInput('%')">%</button>
+      <button class="btn-op" onclick="appendInput('/')">÷</button>
+
+      <button class="btn-num" onclick="appendInput('7')">7</button>
+      <button class="btn-num" onclick="appendInput('8')">8</button>
+      <button class="btn-num" onclick="appendInput('9')">9</button>
+      <button class="btn-op" onclick="appendInput('*')">×</button>
+
+      <button class="btn-num" onclick="appendInput('4')">4</button>
+      <button class="btn-num" onclick="appendInput('5')">5</button>
+      <button class="btn-num" onclick="appendInput('6')">6</button>
+      <button class="btn-op" onclick="appendInput('-')">−</button>
+
+      <button class="btn-num" onclick="appendInput('1')">1</button>
+      <button class="btn-num" onclick="appendInput('2')">2</button>
+      <button class="btn-num" onclick="appendInput('3')">3</button>
+      <button class="btn-op" onclick="appendInput('+')">+</button>
+
+      <button class="btn-num" onclick="appendInput('0')">0</button>
+      <button class="btn-num" onclick="appendInput('.')">.</button>
+      <button class="btn-equal" onclick="compute()">=</button>
+    </div>
+
+    <footer>Press keyboard keys or tap buttons</footer>
+  </div>
+
+  <script>
+    let currentInput = '0';
+    let previousExpression = '';
+    let isEvaluated = false;
+
+    const currDisplay = document.getElementById('currDisplay');
+    const prevDisplay = document.getElementById('prevDisplay');
+
+    function updateDisplay() {
+      currDisplay.textContent = currentInput;
+      prevDisplay.textContent = previousExpression;
+    }
+
+    function appendInput(val) {
+      const isOperator = ['+', '-', '*', '/', '%'].includes(val);
+
+      if (isEvaluated) {
+        if (!isOperator) {
+          currentInput = val;
+        } else {
+          currentInput += val;
+        }
+        isEvaluated = false;
+        updateDisplay();
+        return;
+      }
+
+      if (currentInput === '0' && !isOperator && val !== '.') {
+        currentInput = val;
+      } else {
+        const lastChar = currentInput.slice(-1);
+        if (isOperator && ['+', '-', '*', '/', '%'].includes(lastChar)) {
+          currentInput = currentInput.slice(0, -1) + val;
+        } else {
+          currentInput += val;
+        }
+      }
+      updateDisplay();
+    }
+
+    function clearAll() {
+      currentInput = '0';
+      previousExpression = '';
+      isEvaluated = false;
+      updateDisplay();
+    }
+
+    function deleteChar() {
+      if (isEvaluated) {
+        clearAll();
+        return;
+      }
+      if (currentInput.length === 1 || currentInput === 'Error') {
+        currentInput = '0';
+      } else {
+        currentInput = currentInput.slice(0, -1);
+      }
+      updateDisplay();
+    }
+
+    function compute() {
+      try {
+        let expression = currentInput.replace(/÷/g, '/').replace(/×/g, '*');
+        
+        // Handle percentages safely (e.g. 50% -> (50/100))
+        expression = expression.replace(/(\d+(\.\d+)?)%/g, '($1/100)');
+
+        // Validate characters before calculating
+        if (!/^[0-9+\-*/.() ]+$/.test(expression)) {
+          throw new Error('Invalid Input');
+        }
+
+        const result = Function(`'use strict'; return (${expression})`)();
+        
+        if (result === undefined || isNaN(result) || !isFinite(result)) {
+          throw new Error('Math Error');
+        }
+
+        previousExpression = currentInput + ' =';
+        currentInput = String(Number(result.toFixed(8))); // Removes trailing floating point precision noise
+        isEvaluated = true;
+      } catch (err) {
+        currentInput = 'Error';
+        previousExpression = '';
+        isEvaluated = true;
+      }
+      updateDisplay();
+    }
+
+    // Physical keyboard support
+    window.addEventListener('keydown', (e) => {
+      if ((e.key >= '0' && e.key <= '9') || ['+', '-', '*', '/', '%', '.'].includes(e.key)) {
+        appendInput(e.key);
+      } else if (e.key === 'Enter' || e.key === '=') {
+        e.preventDefault();
+        compute();
+      } else if (e.key === 'Backspace') {
+        deleteChar();
+      } else if (e.key === 'Escape') {
+        clearAll();
+      }
+    });
+  </script>
+</body>
+</html>
